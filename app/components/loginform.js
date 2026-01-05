@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // Next.js 13 router
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginForm() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,8 +23,8 @@ export default function LoginForm() {
 
   // Sample users for demo
   const sampleUsers = [
-    { email: "admin1@gmail.com", password: "1234" },
-    { email: "admin2@gmail.com", password: "4321" },
+    { email: "admin1@gmail.com", password: "1234", role: "admin" },
+    { email: "admin2@gmail.com", password: "4321", role: "admin" },
   ];
 
   // Store sample users in localStorage once
@@ -33,15 +36,30 @@ export default function LoginForm() {
 
   const handleLogin = (e) => {
     e.preventDefault();
+
+    // normalize input
+    const inputEmail = email.trim().toLowerCase();
+    const inputPassword = password;
+
     const users = JSON.parse(localStorage.getItem("sampleUsers") || "[]");
 
     const user = users.find(
-      (u) => u.email === email && u.password === password
+      (u) =>
+        u.email.toLowerCase() === inputEmail && u.password === inputPassword
     );
 
     if (user) {
+      // save token and role (mock)
+      localStorage.setItem("authToken", "sampletoken123");
+      localStorage.setItem("userRole", user.role);
+
       setSuccess("Login successful!");
       setError("");
+
+      // redirect to admin dashboard after a short delay
+      setTimeout(() => {
+        router.push("/Admin"); // make sure your folder is lowercase for URL
+      }, 500);
     } else {
       setError("Invalid email or password");
       setSuccess("");
@@ -109,18 +127,18 @@ export default function LoginForm() {
 
           <CardFooter className="flex-col gap-2 mt-2">
             <Button
-            type="submit"
-            className="w-32 bg-white/20 text-white hover:bg-white/30 mx-auto"
-            onClick={handleLogin}
+              type="submit"
+              className="w-32 bg-white/20 text-white hover:bg-white/30 mx-auto"
+              onClick={handleLogin} // optional, form submit already calls it
             >
-            Login
+              Login
             </Button>
-                              <a
-                    href="#"
-                    className="text-sm underline-offset-4 hover:underline text-white/80"
-                  >
-                    Forgot your password?
-                  </a>
+            <a
+              href="#"
+              className="text-sm underline-offset-4 hover:underline text-white/80 text-center mt-2"
+            >
+              Forgot your password?
+            </a>
           </CardFooter>
         </div>
       </Card>
