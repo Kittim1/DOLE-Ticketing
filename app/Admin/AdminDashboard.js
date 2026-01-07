@@ -180,7 +180,7 @@ export default function AdminDashboard() {
   );
 }
 
-/* Small stat card */
+/* Small stat cardsss */
 function Stat({ title, value, color = "text-gray-900" }) {
   return (
     <div className="bg-white p-4 rounded shadow">
