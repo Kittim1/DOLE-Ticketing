@@ -13,6 +13,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Sample users for demo (login credentials)
+const sampleUsers = [
+  { email: "admin1@gmail.com", password: "1234", role: "admin", userId: "EMP-1001", name: "Juan Dela Cruz" },
+  { email: "admin2@gmail.com", password: "4321", role: "admin", userId: "EMP-1005", name: "Roberto Martinez" },
+  { email: "employee1@dole.gov.ph", password: "1234", role: "user", userId: "EMP-1002", name: "Maria Santos" },
+];
+
 export default function LoginForm() {
   const router = useRouter();
 
@@ -21,17 +28,10 @@ export default function LoginForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Sample users for demo
-  const sampleUsers = [
-    { email: "admin1@gmail.com", password: "1234", role: "admin" },
-    { email: "admin2@gmail.com", password: "4321", role: "admin" },
-  ];
-
   // Store sample users in localStorage once
   useEffect(() => {
-    if (!localStorage.getItem("sampleUsers")) {
-      localStorage.setItem("sampleUsers", JSON.stringify(sampleUsers));
-    }
+    // Always update to include latest users
+    localStorage.setItem("sampleUsers", JSON.stringify(sampleUsers));
   }, []);
 
   const handleLogin = (e) => {
@@ -49,16 +49,23 @@ export default function LoginForm() {
     );
 
     if (user) {
-      // save token and role (mock)
+      // save token, role, user email, userId, and name
       localStorage.setItem("authToken", "sampletoken123");
       localStorage.setItem("userRole", user.role);
+      localStorage.setItem("userEmail", user.email);
+      localStorage.setItem("userId", user.userId || "");
+      localStorage.setItem("userName", user.name || "");
 
       setSuccess("Login successful!");
       setError("");
 
-      // redirect to admin dashboard after a short delay
+      // redirect based on role
       setTimeout(() => {
-        router.push("/Admin"); // make sure your folder is lowercase for URL
+        if (user.role === "admin") {
+          router.push("/Admin");
+        } else {
+          router.push("/user/dashboard");
+        }
       }, 500);
     } else {
       setError("Invalid email or password");
@@ -74,7 +81,7 @@ export default function LoginForm() {
       {/* Glass-like login card */}
       <Card className="w-full max-w-sm relative rounded-lg overflow-hidden 
                        bg-white/20 backdrop-blur-md border border-white/30 shadow-lg">
-        <div className="relative p-6">
+        <form onSubmit={handleLogin} className="relative p-6">
           <CardHeader>
             <div className="flex justify-center items-center mb-4">
               <CardTitle className="text-xl font-bold text-white">
@@ -84,7 +91,7 @@ export default function LoginForm() {
           </CardHeader>
 
           <CardContent>
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
               {/* Email */}
               <div className="grid gap-2">
                 <Label htmlFor="email" className="text-white">
@@ -122,14 +129,13 @@ export default function LoginForm() {
               {/* Messages */}
               {error && <p className="text-red-400 mt-1">{error}</p>}
               {success && <p className="text-green-400 mt-1">{success}</p>}
-            </form>
+            </div>
           </CardContent>
 
           <CardFooter className="flex-col gap-2 mt-2">
             <Button
               type="submit"
               className="w-32 bg-white/20 text-white hover:bg-white/30 mx-auto"
-              onClick={handleLogin} // optional, form submit already calls it
             >
               Login
             </Button>
@@ -140,7 +146,7 @@ export default function LoginForm() {
               Forgot your password?
             </a>
           </CardFooter>
-        </div>
+        </form>
       </Card>
     </div>
   );

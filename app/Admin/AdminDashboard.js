@@ -3,10 +3,68 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
+const dummyRequests = [
+  {
+    ticketId: "REQ-001",
+    requestName: "Printer Not Working",
+    description: "Office printer is jammed and not printing",
+    requestedById: "EMP-1023",
+    remarks: "Pending",
+    requestedAt: "2026-01-03T09:15:00",
+  },
+  {
+    ticketId: "REQ-002",
+    requestName: "PC Setup",
+    description: "Need a new PC setup for new employee",
+    requestedById: "EMP-1045",
+    remarks: "In Progress",
+    requestedAt: "2026-01-04T13:42:00",
+  },
+  {
+    ticketId: "REQ-003",
+    requestName: "Internet Issue",
+    description: "No internet connection on 3rd floor",
+    requestedById: "EMP-1091",
+    remarks: "Resolved",
+    requestedAt: "2026-01-05T16:08:00",
+  },
+  {
+    ticketId: "REQ-004",
+    requestName: "Software Installation",
+    description: "Need Adobe Creative Suite installed on workstation",
+    requestedById: "EMP-1056",
+    remarks: "Pending",
+    requestedAt: "2026-01-06T10:30:00",
+  },
+  {
+    ticketId: "REQ-005",
+    requestName: "Email Access Issue",
+    description: "Cannot access email account, password reset needed",
+    requestedById: "EMP-1088",
+    remarks: "In Progress",
+    requestedAt: "2026-01-07T14:20:00",
+  },
+];
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [tickets, setTickets] = useState([]);
+  const [requests, setRequests] = useState(dummyRequests);
   const [filter, setFilter] = useState("all");
+
+  const loadRequests = () => {
+    // Load requests from localStorage (submitted by users)
+    const userRequests = JSON.parse(
+      localStorage.getItem("userRequests") || "[]"
+    );
+    // Merge with dummy requests, prioritizing user-submitted ones
+    const allRequests = [...userRequests, ...dummyRequests.filter(
+      (dummy) => !userRequests.find((ur) => ur.ticketId === dummy.ticketId)
+    )];
+    // Sort by date (newest first)
+    allRequests.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+    setRequests(allRequests);
+  };
 
   // 🔐 Protect admin route
   useEffect(() => {
@@ -22,18 +80,30 @@ export default function AdminDashboard() {
       localStorage.getItem("tickets") || "[]"
     );
     setTickets(storedTickets);
-  }, [router]);
 
-  // 🚪 Logout
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
-    router.replace("/login");
-  };
+    loadRequests();
+
+    // Refresh requests every 2 seconds to catch new submissions
+    const interval = setInterval(loadRequests, 2000);
+    return () => clearInterval(interval);
+  }, [router]);
 
   // 🎯 Filtering
   const filteredTickets = tickets.filter(
     (t) => filter === "all" || t.status === filter
+  );
+
+  const filteredRequests = requests.filter(
+    (r) => {
+      if (filter === "all") return true;
+      // Map filter values to remarks values
+      const filterMap = {
+        "pending": "Pending",
+        "in progress": "In Progress",
+        "resolved": "Resolved"
+      };
+      return r.remarks === filterMap[filter.toLowerCase()];
+    }
   );
 
   // 🎨 Helpers
@@ -63,52 +133,56 @@ export default function AdminDashboard() {
     }
   };
 
+  const getRemarksColor = (remarks) => {
+    switch (remarks) {
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "In Progress":
+        return "bg-blue-100 text-blue-800";
+      case "Resolved":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col">
+      <div className="w-full flex flex-col h-full overflow-hidden">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Admin Dashboard
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Manage and track support tickets
-            </p>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="border px-4 py-2 rounded hover:bg-gray-200"
-          >
-            Logout
-          </button>
+        <div className="mb-8 flex-shrink-0">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Admin Dashboard
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage and track support requests
+          </p>
         </div>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
-          <Stat title="Total Tickets" value={tickets.length} />
+        <div className="grid md:grid-cols-4 gap-4 mb-6 flex-shrink-0">
+          <Stat title="Total Requests" value={requests.length} />
           <Stat
             title="Pending"
-            value={tickets.filter(t => t.status === "pending").length}
+            value={requests.filter(r => r.remarks === "Pending").length}
             color="text-yellow-600"
           />
           <Stat
             title="In Progress"
-            value={tickets.filter(t => t.status === "in-progress").length}
+            value={requests.filter(r => r.remarks === "In Progress").length}
             color="text-blue-600"
           />
           <Stat
             title="Resolved"
-            value={tickets.filter(t => t.status === "resolved").length}
+            value={requests.filter(r => r.remarks === "Resolved").length}
             color="text-green-600"
           />
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 mb-4">
-          {["all", "pending", "in-progress", "resolved"].map((f) => (
+        <div className="flex gap-2 mb-4 flex-shrink-0">
+          {["all", "pending", "in progress", "resolved"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -118,62 +192,60 @@ export default function AdminDashboard() {
                   : "bg-gray-200 text-gray-700"
               }`}
             >
-              {f.replace("-", " ")}
+              {f}
             </button>
           ))}
         </div>
 
-        {/* Tickets */}
-        {filteredTickets.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No tickets found
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredTickets.map((ticket) => (
-              <div
-                key={ticket.id}
-                className="bg-white p-4 rounded shadow hover:shadow-md"
-              >
-                <div className="flex justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span>{getStatusIcon(ticket.status)}</span>
-                      <h3 className="font-semibold">{ticket.subject}</h3>
+        {/* Requests - Scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {filteredRequests.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No requests found
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredRequests.map((request) => (
+                <div
+                  key={request.ticketId}
+                  className="bg-white p-4 rounded shadow hover:shadow-md"
+                >
+                  <div className="flex justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span>{getStatusIcon(request.remarks.toLowerCase().replace(" ", "-"))}</span>
+                        <h3 className="font-semibold">{request.requestName}</h3>
+                        <span className="text-xs text-gray-500">({request.ticketId})</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {request.description}
+                      </p>
+                      <div className="text-xs text-gray-500 flex flex-wrap gap-2">
+                        <span>👤 {request.requestedByName || request.requestedById}</span>
+                        <span>•</span>
+                        <span>🆔 {request.requestedById}</span>
+                        <span>•</span>
+                        <span>
+                          🕐 {new Date(request.requestedAt).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      {ticket.description}
-                    </p>
-                    <div className="text-xs text-gray-500 flex flex-wrap gap-2">
-                      <span>👤 {ticket.name}</span>
-                      <span>•</span>
-                      <span>📧 {ticket.email}</span>
-                      <span>•</span>
-                      <span>🏢 {ticket.department}</span>
-                      <span>•</span>
-                      <span>
-                        🕐 {new Date(ticket.createdAt).toLocaleString()}
+
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold ${getRemarksColor(
+                          request.remarks
+                        )}`}
+                      >
+                        {request.remarks}
                       </span>
                     </div>
                   </div>
-
-                  <div className="flex flex-col items-end gap-2">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${getPriorityColor(
-                        ticket.priority
-                      )}`}
-                    >
-                      {ticket.priority}
-                    </span>
-                    <span className="px-2 py-1 text-xs bg-gray-100 rounded">
-                      {ticket.category}
-                    </span>
-                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
 
       </div>
     </div>
