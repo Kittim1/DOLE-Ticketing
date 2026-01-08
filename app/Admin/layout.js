@@ -1,5 +1,6 @@
 "use client";
 
+import Swal from "sweetalert2";
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -21,13 +22,38 @@ export default function AdminLayout({ children }) {
 
   // 🚪 Logout
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    router.replace("/login");
+    Swal.fire({
+      title: "Logout Admin?",
+      text: "You will be signed out of the admin panel.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626", // red (admin warning)
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Yes, logout",
+      cancelButtonText: "Cancel",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userName");
+  
+        Swal.fire({
+          icon: "success",
+          title: "Logged out",
+          text: "Admin session ended.",
+          timer: 1200,
+          showConfirmButton: false,
+        });
+  
+        setTimeout(() => {
+          router.replace("/login");
+        }, 1200);
+      }
+    });
   };
+  
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
